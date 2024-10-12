@@ -4,14 +4,17 @@ import { UpdateClientDto } from './dto/update-client.dto';
 import { Client } from 'src/schemas/Client.schema';
 import { Model } from 'mongoose';
 import { InjectModel } from '@nestjs/mongoose';
+import * as bcrypt from 'bcryptjs'
 
 @Injectable()
 export class ClientsService {
 
   constructor(@InjectModel(Client.name) private clientModel:Model<Client>) {}
 
-  create(createClientDto: CreateClientDto) {
-    const newClient = new this.clientModel(CreateClientDto);
+  async create(createClientDto: CreateClientDto) {
+    const saltOrRounds = 10;
+    createClientDto.password = await bcrypt.hash(createClientDto.password, saltOrRounds);
+    const newClient = new this.clientModel(createClientDto);
     return newClient.save();
   }
 
@@ -25,7 +28,11 @@ export class ClientsService {
     return new HttpException('Client not found', 404);
   }
 
-  update(id: number, updateClientDto: UpdateClientDto) {
+  async update(id: number, updateClientDto: UpdateClientDto) {
+    if (updateClientDto.password) {
+      const saltOrRounds = 10;
+      updateClientDto.password = await bcrypt.hash(updateClientDto.password, saltOrRounds);
+    }
     return this.clientModel.findByIdAndUpdate(id, updateClientDto);
   }
 
